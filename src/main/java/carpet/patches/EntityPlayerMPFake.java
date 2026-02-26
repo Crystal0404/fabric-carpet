@@ -35,6 +35,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.Vec3;
 import carpet.fakes.ServerPlayerInterface;
@@ -127,7 +128,7 @@ public class EntityPlayerMPFake extends ServerPlayer
         try (ProblemReporter.ScopedCollector scopedCollector = new ProblemReporter.ScopedCollector(player.problemPath(), CarpetSettings.LOG))
         {
             Optional<ValueInput> optional = player.level().getServer().getPlayerList().loadPlayerData(player.nameAndId()).map((compoundTag) -> TagValueInput.create(scopedCollector, player.registryAccess(), compoundTag));
-            optional.ifPresent( valueInput -> {
+            optional.ifPresent(valueInput -> {
                 player.load(valueInput);
                 player.loadAndSpawnEnderPearls(valueInput);
                 player.loadAndSpawnParentVehicle(valueInput);
@@ -143,7 +144,7 @@ public class EntityPlayerMPFake extends ServerPlayer
         EntityPlayerMPFake playerShadow = new EntityPlayerMPFake(server, worldIn, gameprofile, player.clientInformation(), true);
         playerShadow.setChatSession(player.getChatSession());
         server.getPlayerList().placeNewPlayer(new FakeClientConnection(PacketFlow.SERVERBOUND), playerShadow, new CommonListenerCookie(gameprofile, 0, player.clientInformation(), true));
-        loadPlayerData(playerShadow);
+        loadShadowPlayerData(playerShadow, player);
 
         playerShadow.setHealth(player.getHealth());
         playerShadow.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
@@ -159,6 +160,17 @@ public class EntityPlayerMPFake extends ServerPlayer
         //player.world.getChunkManager().updatePosition(playerShadow);
         playerShadow.getAbilities().flying = player.getAbilities().flying;
         return playerShadow;
+    }
+
+    private static void loadShadowPlayerData(EntityPlayerMPFake fake, ServerPlayer player) {
+        try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), CarpetSettings.LOG)) {
+            TagValueOutput output = TagValueOutput.createWithContext(reporter, player.registryAccess());
+            player.saveWithoutId(output);
+            ValueInput input = TagValueInput.create(reporter, fake.registryAccess(), output.buildResult());
+            fake.load(input);
+            fake.loadAndSpawnEnderPearls(input);
+            fake.loadAndSpawnParentVehicle(input);
+        }
     }
 
     public static EntityPlayerMPFake respawnFake(MinecraftServer server, ServerLevel level, GameProfile profile, ClientInformation cli)
