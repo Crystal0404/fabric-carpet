@@ -14,3 +14,6 @@ accessible method net/minecraft/world/level/border/WorldBorder getListeners ()Lj
 accessible method net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator calculateTargetStrength (Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)I
 accessible field net/minecraft/world/level/block/state/BlockBehaviour UPDATE_SHAPE_ORDER [Lnet/minecraft/core/Direction;
 accessible field net/minecraft/client/renderer/blockentity/BlockEntityRenderDispatcher blockModelResolver Lnet/minecraft/client/renderer/block/BlockModelResolver;
+accessible field net/minecraft/world/entity/Avatar DATA_PLAYER_MODE_CUSTOMISATION Lnet/minecraft/network/syncher/EntityDataAccessor;
+
+inject-interface net/minecraft/server/level/ServerPlayer carpet/fakes/ServerPlayerInterface$ShadowPlayerInterface
