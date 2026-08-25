@@ -16,15 +16,18 @@ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.SkeletonHorse;
 import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.vehicle.boat.Boat;
 import net.minecraft.world.entity.vehicle.minecart.Minecart;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -260,7 +263,7 @@ public class EntityPlayerActionPack
         if (!inv.getItem(slot).isEmpty())
             player.drop(inv.removeItem(slot,
                     dropAll ? inv.getItem(slot).getCount() : 1
-            ), false, true); // scatter, keep owner
+            ), false, Prediction.SERVER_ONLY); // scatter, keep owner
     }
 
     public void drop(int selectedSlot, boolean dropAll)
@@ -319,7 +322,7 @@ public class EntityPlayerActionPack
                                 InteractionResult result = player.gameMode.useItemOn(player, world, player.getItemInHand(hand), hand, blockHit);
                                 if (result instanceof InteractionResult.Success success)
                                 {
-                                    if (success.swingSource() == InteractionResult.SwingSource.SERVER) player.swing(hand);
+                                    if (success.swingSource() == InteractionResult.SwingSource.SERVER_ONLY) player.swing(hand, SwingAnimation.DEFAULT, true);
                                     ap.itemUseCooldown = 3;
                                     return true;
                                 }
@@ -331,8 +334,14 @@ public class EntityPlayerActionPack
                             player.resetLastActionTime();
                             EntityHitResult entityHit = (EntityHitResult) hit;
                             Entity entity = entityHit.getEntity();
-                            boolean handWasEmpty = player.getItemInHand(hand).isEmpty();
+                            ItemStack handItem = player.getItemInHand(hand);
+                            boolean handWasEmpty = handItem.isEmpty();
                             boolean itemFrameEmpty = (entity instanceof ItemFrame) && ((ItemFrame) entity).getItem().isEmpty();
+                            // client always consumes action with food on a horse, unless it's a skeleton horse.
+                            boolean isFeedingHorse = entity instanceof AbstractHorse horse
+                                    && horse.isAlive()
+                                    && horse.isFood(handItem)
+                                    && !(horse instanceof SkeletonHorse);
                             Vec3 relativeHitPos = entityHit.getLocation().subtract(entity.getX(), entity.getY(), entity.getZ());
                             if (entity.interact(player,  hand, relativeHitPos).consumesAction())
                             {
@@ -340,7 +349,9 @@ public class EntityPlayerActionPack
                                 return true;
                             }
                             // fix for SS itemframe always returns CONSUME even if no action is performed
-                            if (player.interactOn(entity, hand, relativeHitPos).consumesAction() && !(handWasEmpty && itemFrameEmpty))
+                            InteractionResult interactionResult = player.interactOn(entity, hand, relativeHitPos);
+                            if ((interactionResult.consumesAction() && !(handWasEmpty && itemFrameEmpty))
+                                    || isFeedingHorse)
                             {
                                 ap.itemUseCooldown = 3;
                                 return true;
@@ -376,7 +387,7 @@ public class EntityPlayerActionPack
                         if (!action.isContinuous)
                         {
                             player.attack(entityHit.getEntity());
-                            player.swing(InteractionHand.MAIN_HAND);
+                            player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
                         }
                         player.resetAttackStrengthTicker();
                         player.resetLastActionTime();
@@ -444,7 +455,7 @@ public class EntityPlayerActionPack
 
                         }
                         player.resetLastActionTime();
-                        player.swing(InteractionHand.MAIN_HAND);
+                        player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
                         return blockBroken;
                     }
                 }
