@@ -136,13 +136,13 @@ public class EntityPlayerMPFake extends ServerPlayer
 
     public static void createShadow(ServerPlayer player)
     {
-        player.fabric_carpet$shadowAfterDisconnect();
+        player.carpet$shadowAfterDisconnect();
         player.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
     }
 
     public static void createShadow(MinecraftServer server, ServerPlayer player)
     {
-        if (player.fabric_carpet$shouldShadow())
+        if (player.carpet$shouldShadow())
         {
             ServerLevel worldIn = player.level();//.getWorld(player.dimension);
             GameProfile gameprofile = player.getGameProfile();
