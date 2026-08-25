@@ -134,12 +134,18 @@ public class EntityPlayerMPFake extends ServerPlayer
         }
     }
 
+    /**
+     *  Calling this will create a shadow player after the player has completely left the game.
+     */
     public static void createShadow(ServerPlayer player)
     {
         player.carpet$shadowAfterDisconnect();
         player.connection.disconnect(Component.translatable("multiplayer.disconnect.duplicate_login"));
     }
 
+    /**
+     *  Must be called after the player has completely left the game.
+     */
     public static void createShadow(MinecraftServer server, ServerPlayer player)
     {
         if (player.carpet$shouldShadow())
